@@ -1,0 +1,57 @@
+# Binaries and object files
+[Dd]ebug/
+[Rr]elease/
+*.dll
+*.exe
+*.pdb
+*.obj
+*.ilk
+*.suo
+*.user
+*.aps
+*.o
+*.pyc
+*.pyo
+*.pyd
+*.vs/
+
+# Build results
+bin/
+obj/
+
+# Rider
+.idea/
+
+# Visual Studio Code
+.vscode/
+.history/
+
+# Packages
+packages/
+*.nupkg
+
+# Test Results
+TestResults/
+*.trx
+*.coverage
+
+# NuGet
+.nuget/NuGetScratch/
+.nuget/packages/
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+
+# Linux
+*.swp
+
+# Generated files
+# The output of dotnet publish
+publish/
+
+# User secrets (if you use them)
+# This line should be present if you use user secrets, usually for local dev only
+# /appsettings*.json
