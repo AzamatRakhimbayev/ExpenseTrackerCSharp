@@ -1,0 +1,17 @@
+version: '3.8' # Версия синтаксиса Docker Compose
+
+services:
+  db: # Имя вашего сервиса базы данных
+    image: postgres:16-alpine # Используем официальный образ PostgreSQL версии 16 (Alpine - легковесная версия)
+    restart: always # Всегда перезапускать контейнер, если он упадет
+    environment:
+      POSTGRES_DB: ExpenseTrackerDb # Имя базы данных
+      POSTGRES_USER: user # Имя пользователя базы данных
+      POSTGRES_PASSWORD: password # Пароль пользователя базы данных (для разработки используем простой, в продакшене - сложный)
+    ports:
+      - "5432:5432" # Проксируем порт 5432 контейнера на порт 5432 вашей машины (стандартный порт PostgreSQL)
+    volumes:
+      - pgdata:/var/lib/postgresql/data # Монтируем volume для сохранения данных БД. Данные не потеряются при перезапуске контейнера.
+
+volumes:
+  pgdata: # Объявление именованного volume
