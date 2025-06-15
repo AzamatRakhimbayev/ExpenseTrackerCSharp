@@ -1,9 +1,18 @@
+using Microsoft.EntityFrameworkCore; // Эту строку нужно добавить
+using ExpenseTrackerApi.Data;      // Эту строку нужно добавить
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// >>>>>>>>>>>>>> ДОБАВЬТЕ ЭТИ СТРОКИ ЗДЕСЬ <<<<<<<<<<<<<<<
+builder.Services.AddDbContext<ExpenseTrackerDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+// >>>>>>>>>>>>>> ДОБАВЬТЕ ЭТИ СТРОКИ ЗДЕСЬ <<<<<<<<<<<<<<<
+
 
 var app = builder.Build();
 
