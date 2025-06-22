@@ -13,20 +13,19 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
-  api: # НОВЫЙ СЕРВИС ДЛЯ ВАШЕГО API
+  api: # Сервис для вашего API
     build:
-      context: ./ExpenseTrackerApi # Указываем Docker, где находится Dockerfile
-      dockerfile: Dockerfile       # Имя Dockerfile в этой папке
+      context: .               # Контекст сборки - корневая папка
+      dockerfile: Dockerfile   # Dockerfile теперь в корне
     ports:
-      - "5024:80"  # Проксируем порт 80 контейнера (HTTP) на 5024 вашей машины
-      - "7024:443" # Проксируем порт 443 контейнера (HTTPS) на 7024 вашей машины
+      - "5024:80"
+      - "7024:443"
     environment:
-      ASPNETCORE_URLS: "https://+:443;http://+:80" # URL-адреса, на которых слушает приложение внутри контейнера
-      ASPNETCORE_ENVIRONMENT: Development        # Устанавливаем окружение для ASP.NET Core
+      ASPNETCORE_URLS: "https://+:443;http://+:80"
+      ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=ExpenseTrackerDb;Username=user;Password=password"
-                                                # Строка подключения для Docker-окружения
     depends_on:
-      - db # Указываем, что API зависит от базы данных (запускать db первым)
+      - db
     restart: always
 
 volumes:
