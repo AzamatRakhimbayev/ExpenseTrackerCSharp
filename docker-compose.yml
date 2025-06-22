@@ -1,17 +1,33 @@
-version: '3.8' # Версия синтаксиса Docker Compose
+version: '3.8'
 
 services:
-  db: # Имя вашего сервиса базы данных
-    image: postgres:16-alpine # Используем официальный образ PostgreSQL версии 16 (Alpine - легковесная версия)
-    restart: always # Всегда перезапускать контейнер, если он упадет
+  db: # Сервис базы данных (без изменений)
+    image: postgres:16-alpine
+    restart: always
     environment:
-      POSTGRES_DB: ExpenseTrackerDb # Имя базы данных
-      POSTGRES_USER: user # Имя пользователя базы данных
-      POSTGRES_PASSWORD: password # Пароль пользователя базы данных (для разработки используем простой, в продакшене - сложный)
+      POSTGRES_DB: ExpenseTrackerDb
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
     ports:
-      - "5432:5432" # Проксируем порт 5432 контейнера на порт 5432 вашей машины (стандартный порт PostgreSQL)
+      - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data # Монтируем volume для сохранения данных БД. Данные не потеряются при перезапуске контейнера.
+      - pgdata:/var/lib/postgresql/data
+
+  api: # НОВЫЙ СЕРВИС ДЛЯ ВАШЕГО API
+    build:
+      context: ./ExpenseTrackerApi # Указываем Docker, где находится Dockerfile
+      dockerfile: Dockerfile       # Имя Dockerfile в этой папке
+    ports:
+      - "5024:80"  # Проксируем порт 80 контейнера (HTTP) на 5024 вашей машины
+      - "7024:443" # Проксируем порт 443 контейнера (HTTPS) на 7024 вашей машины
+    environment:
+      ASPNETCORE_URLS: "https://+:443;http://+:80" # URL-адреса, на которых слушает приложение внутри контейнера
+      ASPNETCORE_ENVIRONMENT: Development        # Устанавливаем окружение для ASP.NET Core
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=ExpenseTrackerDb;Username=user;Password=password"
+                                                # Строка подключения для Docker-окружения
+    depends_on:
+      - db # Указываем, что API зависит от базы данных (запускать db первым)
+    restart: always
 
 volumes:
-  pgdata: # Объявление именованного volume
+  pgdata:
