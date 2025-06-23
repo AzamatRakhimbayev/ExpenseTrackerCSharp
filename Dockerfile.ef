@@ -1,0 +1,18 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0
+
+WORKDIR /app
+
+# Копируем .csproj и восстанавливаем зависимости
+COPY ExpenseTrackerApi/ExpenseTrackerApi.csproj ./ExpenseTrackerApi/
+RUN dotnet restore ExpenseTrackerApi/ExpenseTrackerApi.csproj
+
+# Копируем остальные файлы проекта
+COPY . .
+
+# Устанавливаем EF Core CLI tools
+RUN dotnet tool install --global dotnet-ef --version 8.0.0
+
+# Добавляем dotnet-ef в PATH
+ENV PATH="${PATH}:/root/.dotnet/tools"
+
+# Нет ENTRYPOINT, чтобы мы могли свободно выполнять команды

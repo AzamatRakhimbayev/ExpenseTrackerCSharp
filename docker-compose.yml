@@ -1,7 +1,8 @@
 version: '3.8'
 
 services:
-  db: # Сервис базы данных (без изменений)
+  db:
+    # ... (ваш сервис db остается без изменений) ...
     image: postgres:16-alpine
     restart: always
     environment:
@@ -13,15 +14,25 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
-  api: # Сервис для вашего API
+  ef_cli: # <--- НОВЫЙ СЕРВИС ДЛЯ EF CORE CLI
     build:
-      context: .               # Контекст сборки - корневая папка
-      dockerfile: Dockerfile   # Dockerfile теперь в корне
+      context: .
+      dockerfile: Dockerfile.ef # <--- Используем новый Dockerfile.ef
+    environment:
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=ExpenseTrackerDb;Username=user;Password=password"
+    depends_on:
+      - db
+    # Нет портов, так как это не работающий сервис, а просто для команд
+
+  api:
+    # ... (ваш сервис api остается без изменений) ...
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "5024:80"
-      - "7024:443"
     environment:
-      ASPNETCORE_URLS: "https://+:443;http://+:80"
+      ASPNETCORE_URLS: "http://+:80"
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=ExpenseTrackerDb;Username=user;Password=password"
     depends_on:
