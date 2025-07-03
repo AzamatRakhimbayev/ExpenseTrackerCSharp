@@ -1,108 +1,76 @@
+// Program.cs
+
 using Microsoft.EntityFrameworkCore;
+using ExpenseTrackerApi.Models; // Убедитесь, что это пространство имен соответствует вашему ExpenseTrackerDbContext и моделям
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using ExpenseTrackerApi.Data;
-using ExpenseTrackerApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// --- 1. Настройка сервисов для CORS ---
+// Добавление сервисов CORS в контейнер зависимостей приложения
+builder.Services.AddCors(options =>
+{
+    // Определение CORS-политики с именем "AllowFrontendOrigin"
+    options.AddPolicy("AllowFrontendOrigin",
+        policy =>
+        {
+            // Указываем разрешенные источники (домены/порты), с которых могут приходить запросы.
+            // Для вашего React-приложения, которое запускается Vite в режиме разработки, это обычно http://localhost:5173
+            // В продакшене здесь будет домен вашего фронтенда, например, "https://your-frontend-domain.com"
+            policy.WithOrigins("http://localhost:5173") // <-- УБЕДИТЕСЬ, ЧТО ЭТОТ ПОРТ СООТВЕТСТВУЕТ ВАШЕМУ ФРОНТЕНДУ!
+                  .AllowAnyHeader()    // Разрешаем любые HTTP-заголовки в запросах от фронтенда
+                  .AllowAnyMethod();   // Разрешаем любые HTTP-методы (GET, POST, PUT, DELETE) от фронтенда
+        });
+});
+// ------------------------------------
+
+
+// --- 2. Настройка сервисов для контроллеров, Swagger/OpenAPI и Entity Framework Core ---
+// Добавление сервисов для работы с контроллерами (вашими API-эндпоинтами)
+builder.Services.AddControllers();
+
+// Добавление сервисов для генерации документации API (Swagger/OpenAPI)
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Добавляем CORS сервисы
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowSpecificOrigin",
-        builder => builder.WithOrigins("http://localhost:3000") // Замените на порт вашего фронтенда, если он другой
-                            .AllowAnyHeader()
-                            .AllowAnyMethod());
-});
-
+// Настройка подключения к базе данных PostgreSQL с использованием Entity Framework Core
+// Строка подключения берется из конфигурации приложения (appsettings.json или переменных окружения)
+// В Docker Compose мы передаем её через переменные окружения
 builder.Services.AddDbContext<ExpenseTrackerDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+// -------------------------------------------------------------------------------------
 
 
+// --- 3. Построение приложения и настройка HTTP-конвейера запросов ---
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Конфигурация HTTP request pipeline (последовательность обработки запросов)
+// Swagger UI доступен только в режиме разработки для удобства тестирования API
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+// Перенаправление HTTP-запросов на HTTPS (рекомендуется для продакшена)
 app.UseHttpsRedirection();
 
-app.UseCors("AllowSpecificOrigin"); // Применяем политику CORS
+// --- 4. Применение CORS-политики ---
+// Применение созданной ранее CORS-политики к HTTP-конвейеру обработки запросов
+// Это должно быть ДО UseAuthorization() и UseEndpoints()
+app.UseCors("AllowFrontendOrigin"); // <-- Применяем политику по её имени "AllowFrontendOrigin"
+// ----------------------------------
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+// --- 5. Настройка авторизации и маршрутизации контроллеров ---
+// Включение системы авторизации (если она есть, хотя у нас пока нет явной авторизации)
+app.UseAuthorization();
 
-// Expense API Endpoints
-app.MapGet("/expenses", async (ExpenseTrackerDbContext db) =>
-{
-    return await db.Expenses.ToListAsync();
-});
+// Маппинг контроллеров, чтобы запросы направлялись в соответствующие методы ваших контроллеров
+app.MapControllers();
+// -----------------------------------------------------------
 
-app.MapGet("/expenses/{id}", async (int id, ExpenseTrackerDbContext db) =>
-{
-    return await db.Expenses.FindAsync(id)
-                        is Expense expense
-                            ? Results.Ok(expense)
-                            : Results.NotFound();
-});
 
-app.MapPost("/expenses", async (Expense expense, ExpenseTrackerDbContext db) =>
-{
-    db.Expenses.Add(expense);
-    await db.SaveChangesAsync();
-    return Results.Created($"/expenses/{expense.Id}", expense);
-});
-
-app.MapPut("/expenses/{id}", async (int id, Expense expense, ExpenseTrackerDbContext db) =>
-{
-    var existingExpense = await db.Expenses.FindAsync(id);
-
-    if (existingExpense is null) return Results.NotFound();
-
-    existingExpense.Description = expense.Description;
-    existingExpense.Amount = expense.Amount;
-    existingExpense.Date = expense.Date;
-
-    await db.SaveChangesAsync();
-    return Results.NoContent();
-});
-
-app.MapDelete("/expenses/{id}", async (int id, ExpenseTrackerDbContext db) =>
-{
-    if (await db.Expenses.FindAsync(id) is Expense expense)
-    {
-        db.Expenses.Remove(expense);
-        await db.SaveChangesAsync();
-        return Results.Ok(expense);
-    }
-    return Results.NotFound();
-});
-
+// --- 6. Запуск приложения ---
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
